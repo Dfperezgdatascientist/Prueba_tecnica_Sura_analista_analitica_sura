@@ -93,17 +93,6 @@ html            # Dashboard interactivo (Punto c)
 4. **Priorizar atención al canal web** — concentra el 54.6% del volumen
 5. **Programa de gestión de clientes críticos** — intervención para top 20 clientes
 
-
-### Herramientas Utilizadas
-| Tarea | Herramienta |
-|-------|-------------|
-| EDA y análisis | Python (pandas, matplotlib, seaborn) |
-| NLP / Clasificación | scikit-learn, TF-IDF |
-| Dashboard | HTML + Chart.js + Plotly |
-| Pipeline | Python + schedule / Apache Airflow |
-| Predicción | Random Forest / Logistic Regression |
-| Documentación | Markdown |
-
 ### Dashboard punto B y C prototipo
 
 #### Metricas generales
@@ -134,6 +123,7 @@ documentación: `docs/flujo_automatizado_semanal.md`
 
 Se encuentra en :  `docs/metodologia_herramienta.md`
 
+
 ---
 
 ### Instalación y Uso
@@ -155,6 +145,17 @@ python pipeline/pipeline_semanal.py
 # Abrir dashboard
 start dashboard/dashboard_quejas.html
 ```
+
+### Herramientas Utilizadas
+| Tarea | Herramienta |
+|-------|-------------|
+| EDA y análisis | Python (pandas, matplotlib, seaborn) |
+| NLP / Clasificación | scikit-learn, TF-IDF |
+| Dashboard | HTML + Chart.js + Plotly |
+| Pipeline | Python + schedule / Apache Airflow |
+| Predicción | Random Forest / Logistic Regression |
+| Documentación | Markdown |
+
 
 ---
 

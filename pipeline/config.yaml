@@ -1,0 +1,66 @@
+# config.yaml — Configuración del Pipeline Semanal de Quejas
+
+pipeline:
+  nombre: "pipeline_quejas_semanal"
+  frecuencia: "weekly"           # Ejecutar cada lunes 6:00 AM
+  cron: "0 6 * * 1"
+  zona_horaria: "America/Bogota"
+
+fuentes_datos:
+  tipo: "excel"                  # Opciones: excel | api | sftp | database
+  ruta_local: "data/BD_Quejas_Analitica.xlsx"
+  # En producción:
+  # tipo: "database"
+  # host: "db.empresa.com"
+  # puerto: 5432
+  # base_datos: "quejas_arl"
+  # tabla: "quejas_nuevas"
+  # usuario: "${DB_USER}"        # Variables de entorno
+  # password: "${DB_PASSWORD}"
+
+validacion:
+  columnas_requeridas:
+    - "Mes apertura del caso"
+    - "Descripción"
+    - "Tipo"
+    - "Nombre del cliente"
+    - "Canal de comunicación"
+  eliminar_duplicados: true
+  campos_deduplicacion: ["Descripción", "Nombre del cliente"]
+
+clasificacion:
+  usar_modelo_ml: true
+  fallback_reglas: true          # Si el modelo no está disponible
+  umbral_confianza: 0.6          # Probabilidad mínima para clasificar
+  modelo_path: "outputs/modelo"
+
+metricas:
+  calcular_mensual: true
+  calcular_por_canal: true
+  calcular_por_categoria: true
+  calcular_top_clientes: 20
+  umbral_cliente_riesgo: 3       # >= 3 quejas = alto riesgo
+
+reportes:
+  generar_excel: true
+  generar_log: true
+  ruta_salida: "outputs/"
+  prefijo: "reporte_semanal"
+
+notificaciones:
+  email_activado: false           # Activar en producción
+  destinatarios:
+    - "lider.datos@empresa.com"
+    - "gerencia.experiencia@empresa.com"
+  alertas:
+    - condicion: "quejas_semana > 500"
+      mensaje: "⚠️ Volumen de quejas supera umbral crítico esta semana"
+    - condicion: "nueva_categoria_dominante"
+      mensaje: "📊 Cambio en categoría más frecuente detectado"
+
+airflow:                          # Configuración alternativa para Apache Airflow
+  dag_id: "pipeline_quejas_semanal"
+  owner: "data-team"
+  retries: 2
+  retry_delay_minutes: 5
+  email_on_failure: true

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dashboard Quejas — ARL Pagos Prestadores Salud</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --card: #21253a;
+    --accent: #4f8ef7;
+    --accent2: #f7874f;
+    --accent3: #4ff7a0;
+    --accent4: #f74f8e;
+    --text: #e8eaf0;
+    --muted: #8b90a8;
+    --border: #2e3350;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --green: #22c55e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1a1d27 0%, #0f1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .header-left h1 { font-size: 1.4rem; font-weight: 700; color: var(--text); }
+  .header-left p { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+  .badge { background: var(--accent); color: white; font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; font-weight: 600; }
+
+  /* KPIs */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 24px 32px 0; }
+  .kpi-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--accent-color, var(--accent));
+  }
+  .kpi-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .kpi-value { font-size: 2rem; font-weight: 700; margin: 6px 0 4px; color: var(--text); }
+  .kpi-sub { font-size: 0.75rem; color: var(--muted); }
+  .kpi-icon { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 2rem; opacity: 0.12; }
+
+  /* Grid de gráficas */
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 20px 32px; }
+  .charts-grid .wide { grid-column: 1 / -1; }
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .chart-title { font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .chart-sub { font-size: 0.72rem; color: var(--muted); margin-bottom: 16px; }
+  .chart-wrap { position: relative; }
+
+  /* Tabla de clientes */
+  .table-section { padding: 0 32px 32px; }
+  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 12px; font-size: 0.83rem; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(79,142,247,0.05); }
+  .bar-cell { display: flex; align-items: center; gap: 8px; }
+  .mini-bar { height: 6px; border-radius: 3px; background: var(--accent); min-width: 4px; }
+  .badge-cat { font-size: 0.68rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
+  .badge-alto { background: rgba(239,68,68,0.2); color: #ef4444; }
+  .badge-medio { background: rgba(245,158,11,0.2); color: #f59e0b; }
+  .badge-bajo { background: rgba(34,197,94,0.2); color: #22c55e; }
+
+  /* Insights panel */
+  .insights { padding: 0 32px 20px; }
+  .insights-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .insight-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    border-left: 3px solid var(--accent-color, var(--accent));
+  }
+  .insight-icon { font-size: 1.4rem; margin-bottom: 8px; }
+  .insight-title { font-size: 0.8rem; font-weight: 700; margin-bottom: 6px; }
+  .insight-text { font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab { padding: 6px 14px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted); }
+  .tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <h1>📊 Dashboard Análisis de Quejas</h1>
+    <p>ARL — Pagos a Prestadores de Servicios de Salud · Ene–Jun 2025</p>
+  </div>
+  <span class="badge">1,841 Quejas Analizadas</span>
+  <img src="sura.png" alt="Logo Sura" style="height:48px; margin-left:24px; background:white; border-radius:8px; padding:4px; box-shadow:0 2px 8px #0002;"/>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-row">
+  <div class="kpi-card" style="--accent-color:#ef4444">
+    <div class="kpi-label">Total Quejas</div>
+    <div class="kpi-value">1,841</div>
+    <div class="kpi-sub">Ene – Jun 2025</div>
+    <div class="kpi-icon">📋</div>
+  </div>
+  <div class="kpi-card" style="--accent-color:#f59e0b">
+    <div class="kpi-label">Causa Raíz #1</div>
+    <div class="kpi-value">51.7%</div>
+    <div class="kpi-sub">Demora pago incapacidades</div>
+    <div class="kpi-icon">⏳</div>
+  </div>
+  <div class="kpi-card" style="--accent-color:#4f8ef7">
+    <div class="kpi-label">Canal Líder</div>
+    <div class="kpi-value">54.6%</div>
+    <div class="kpi-sub">segurossura.com.co</div>
+    <div class="kpi-icon">🌐</div>
+  </div>
+  <div class="kpi-card" style="--accent-color:#22c55e">
+    <div class="kpi-label">Clientes Recurrentes</div>
+    <div class="kpi-value">18.3%</div>
+    <div class="kpi-sub">Con ≥2 quejas registradas</div>
+    <div class="kpi-icon">🔁</div>
+  </div>
+</div>
+
+<!-- Insights -->
+<div class="insights" style="padding-top:20px;">
+  <div class="insights-grid">
+    <div class="insight-card" style="--accent-color:#ef4444">
+      <div class="insight-icon">🔥</div>
+      <div class="insight-title">Causa Raíz Principal</div>
+      <div class="insight-text">952 quejas (51.7%) corresponden a <strong>demora en el pago de incapacidades</strong>. El proceso de liquidación manual genera cuellos de botella críticos que impactan directamente la experiencia del cliente.</div>
+    </div>
+    <div class="insight-card" style="--accent-color:#f59e0b">
+      <div class="insight-icon">📉</div>
+      <div class="insight-title">Tendencia Mensual</div>
+      <div class="insight-text">Pico de <strong>375 quejas en enero 2025</strong>, con reducción notable en junio (173). Posible estacionalidad o efecto de medidas correctivas parciales. Requiere monitoreo continuo.</div>
+    </div>
+    <div class="insight-card" style="--accent-color:#4f8ef7">
+      <div class="insight-icon">🎯</div>
+      <div class="insight-title">Clientes de Alto Riesgo</div>
+      <div class="insight-text"><strong>ALTIPAL S.A.S y ADOLFO NÚÑEZ</strong> lideran con 11 quejas cada uno. Los clientes con ≥5 quejas representan el 4.2% pero concentran el 12.8% del volumen total.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Grid -->
+<div class="charts-grid">
+
+  <!-- Tendencia mensual -->
+  <div class="chart-card wide">
+    <div class="chart-title">Evolución Mensual de Quejas</div>
+    <div class="chart-sub">¿Hay patrones temporales en la insatisfacción?</div>
+    <div class="chart-wrap" style="height:220px">
+      <canvas id="lineChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Categorías - RESPONDE: ¿Qué tipo de quejas son más frecuentes? -->
+  <div class="chart-card">
+    <div class="chart-title">Tipos de Quejas más Frecuentes</div>
+    <div class="chart-sub">¿Qué tipo de quejas son más frecuentes?</div>
+    <div class="chart-wrap" style="height:280px">
+      <canvas id="catChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Canales - RESPONDE: ¿Hay canales recurrentes? -->
+  <div class="chart-card">
+    <div class="chart-title">Distribución por Canal</div>
+    <div class="chart-sub">¿Hay canales con mayor concentración de quejas?</div>
+    <div class="chart-wrap" style="height:280px">
+      <canvas id="canalChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Cruce Canal x Categoría -->
+  <div class="chart-card wide">
+    <div class="chart-title">Canal × Tipo de Queja</div>
+    <div class="chart-sub">¿Qué problemas se reportan por cada canal?</div>
+    <div class="chart-wrap" style="height:260px">
+      <canvas id="crossChart"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- Tabla Top Clientes -->
+<div class="table-section">
+  <div class="table-card">
+    <div class="chart-title" style="margin-bottom:4px">Top 10 Clientes con Mayor Número de Quejas</div>
+    <div class="chart-sub" style="margin-bottom:16px">¿Hay clientes recurrentes? — Indicador de riesgo de churn</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Cliente</th>
+          <th>Quejas</th>
+          <th>Volumen</th>
+          <th>Nivel de Riesgo</th>
+        </tr>
+      </thead>
+      <tbody id="clientTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// ─── Data ─────────────────────────────────────────────────────────────────
+const monthly = {
+  labels: ['Ene 2025','Feb 2025','Mar 2025','Abr 2025','May 2025','Jun 2025'],
+  data:   [375, 288, 308, 335, 362, 173]
+};
+
+const categorias = {
+  labels: ['Demora Pago Incapacidad','Consulta Estado Incapacidad','Gestión Incapacidad','Otra Solicitud','Seguimiento Radicado','Accidente Trabajo','Solicitud Certificado'],
+  data:   [952, 360, 212, 185, 112, 15, 5]
+};
+
+const canales = {
+  labels: ['SEGUROSSURA.COM.CO','LÍNEA DE ATENCIÓN','ENTES DE CONTROL','PLATAFORMA ATENCIÓN'],
+  data:   [1005, 645, 157, 34]
+};
+
+const cross = {
+  canales: ['Entes Control','Línea Atención','Plataforma Atc.','Sura Web'],
+  categorias: ['Accidente Trab.','Consulta Estado','Demora Pago','Gestión Incap.','Otra Solicitud','Seg. Radicado','Certif.'],
+  values: [
+    [1, 20, 119, 4, 10, 2, 1],
+    [0, 217, 220, 123, 31, 54, 0],
+    [1, 2, 27, 1, 3, 0, 0],
+    [13, 121, 586, 84, 141, 56, 4]
+  ]
+};
+
+const topClientes = [
+  {name:'ALTIPAL S A S', total:11},
+  {name:'ADOLFO NUÑEZ', total:11},
+  {name:'AGRICOLA EL RETIRO S.A.S', total:10},
+  {name:'JORGE GIRALDO', total:9},
+  {name:'JOSE GARAVITO', total:8},
+  {name:'MG CONSULTORES SAS', total:7},
+  {name:'SOL. LABORALES HORIZONTE', total:7},
+  {name:'CARLOS CHICA', total:6},
+  {name:'ANA JIMENEZ', total:6},
+  {name:'SANDRA BARRERA', total:6},
+];
+
+// ─── Colores ──────────────────────────────────────────────────────────────
+const COLORS = ['#4f8ef7','#f7874f','#4ff7a0','#f74f8e','#a04ff7','#f7d94f','#4fd1f7'];
+const GRID_COLOR = 'rgba(255,255,255,0.06)';
+const FONT = { family: "'Segoe UI', sans-serif", color: '#8b90a8' };
+
+Chart.defaults.color = '#8b90a8';
+Chart.defaults.borderColor = GRID_COLOR;
+
+// ─── Línea mensual ────────────────────────────────────────────────────────
+new Chart(document.getElementById('lineChart'), {
+  type: 'line',
+  data: {
+    labels: monthly.labels,
+    datasets: [{
+      label: 'Quejas',
+      data: monthly.data,
+      borderColor: '#4f8ef7',
+      backgroundColor: 'rgba(79,142,247,0.12)',
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: '#4f8ef7',
+      pointRadius: 5,
+      pointHoverRadius: 8,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false },
+      tooltip: { backgroundColor: '#21253a', borderColor: '#2e3350', borderWidth: 1 }
+    },
+    scales: {
+      x: { grid: { color: GRID_COLOR }, ticks: { color: '#8b90a8' } },
+      y: { grid: { color: GRID_COLOR }, ticks: { color: '#8b90a8' }, beginAtZero: true }
+    }
+  }
+});
+
+// ─── Categorías (horizontal bar) ─────────────────────────────────────────
+new Chart(document.getElementById('catChart'), {
+  type: 'bar',
+  data: {
+    labels: categorias.labels,
+    datasets: [{
+      label: 'Quejas',
+      data: categorias.data,
+      backgroundColor: COLORS,
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false },
+      tooltip: { backgroundColor: '#21253a', borderColor: '#2e3350', borderWidth: 1,
+        callbacks: { label: ctx => ` ${ctx.raw} quejas (${(ctx.raw/1841*100).toFixed(1)}%)` }
+      }
+    },
+    scales: {
+      x: { grid: { color: GRID_COLOR }, ticks: { color: '#8b90a8' } },
+      y: { grid: { display: false }, ticks: { color: '#8b90a8', font: { size: 11 } } }
+    }
+  }
+});
+
+// ─── Canales (donut) ─────────────────────────────────────────────────────
+new Chart(document.getElementById('canalChart'), {
+  type: 'doughnut',
+  data: {
+    labels: canales.labels,
+    datasets: [{
+      data: canales.data,
+      backgroundColor: ['#4f8ef7','#f7874f','#4ff7a0','#f74f8e'],
+      borderWidth: 0,
+      hoverOffset: 6,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+      legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14, color: '#8b90a8', font:{size:11} } },
+      tooltip: { backgroundColor: '#21253a', borderColor: '#2e3350', borderWidth: 1,
+        callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} (${(ctx.raw/1841*100).toFixed(1)}%)` }
+      }
+    }
+  }
+});
+
+// ─── Cruce (stacked bar) ─────────────────────────────────────────────────
+new Chart(document.getElementById('crossChart'), {
+  type: 'bar',
+  data: {
+    labels: cross.canales,
+    datasets: cross.categorias.map((cat, i) => ({
+      label: cat,
+      data: cross.values.map(row => row[i]),
+      backgroundColor: COLORS[i],
+      borderRadius: i === cross.categorias.length - 1 ? 4 : 0,
+    }))
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, font:{size:10}, color:'#8b90a8' } },
+      tooltip: { mode: 'index', backgroundColor: '#21253a', borderColor: '#2e3350', borderWidth: 1 }
+    },
+    scales: {
+      x: { stacked: true, grid: { display: false }, ticks: { color: '#8b90a8' } },
+      y: { stacked: true, grid: { color: GRID_COLOR }, ticks: { color: '#8b90a8' } }
+    }
+  }
+});
+
+// ─── Tabla de clientes ────────────────────────────────────────────────────
+const MAX = 11;
+const tbody = document.getElementById('clientTable');
+topClientes.forEach((c, i) => {
+  const pct = Math.round(c.total / MAX * 100);
+  const risk = c.total >= 10 ? ['ALTO','badge-alto'] : c.total >= 7 ? ['MEDIO','badge-medio'] : ['BAJO','badge-bajo'];
+  tbody.innerHTML += `
+    <tr>
+      <td style="color:var(--muted);font-size:0.75rem">${i+1}</td>
+      <td>${c.name}</td>
+      <td style="font-weight:700">${c.total}</td>
+      <td>
+        <div class="bar-cell">
+          <div class="mini-bar" style="width:${pct*1.6}px;background:${i<3?'#ef4444':i<6?'#f59e0b':'#4f8ef7'}"></div>
+          <span style="font-size:0.72rem;color:var(--muted)">${(c.total/1841*100).toFixed(2)}%</span>
+        </div>
+      </td>
+      <td><span class="badge-cat ${risk[1]}">${risk[0]}</span></td>
+    </tr>`;
+});
+</script>
+</body>
+</html>
